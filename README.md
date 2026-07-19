@@ -31,30 +31,29 @@ Use your **bare hands** in front of a webcam to play synthesizer chords, save ch
 
 ---
 
-## 🚀 How to Run
+### Unified Launcher (Recommended)
 
-### Web App (Main)
+You can launch the entire project with a single Python script. It automatically installs dependencies (`pygame`, `numpy`), hosts the local server, and opens your browser:
 
 ```bash
-# Clone the repo
-git clone https://github.com/fightermanoj/AI-Hardware-Buildathon.git
-cd AI-Hardware-Buildathon
+# Run the unified script
+python run.py
+```
 
-# Start a local server
+### Manual Run
+
+```bash
+# 1. Start a local server
 python -m http.server 8080
 
-# Open in browser
+# 2. Open in browser
 # http://localhost:8080
 ```
 
-1. Allow webcam access when prompted
-2. Click anywhere to initialize the audio engine
-3. Use your hands to play!
-
 ### Requirements
-- Modern browser (Chrome/Edge recommended)
+- Python 3.x
+- Modern web browser (Chrome/Edge recommended) with webcam access
 - Webcam
-- No installation needed — runs entirely in the browser
 
 ---
 
@@ -92,6 +91,7 @@ python -m http.server 8080
 ├── index.html      # Main UI layout with dashboard controls
 ├── app.js          # Core engine: MediaPipe tracking + Web Audio synthesis + gesture mapping
 ├── style.css       # Cyberpunk-themed dark UI styling
+├── run.py          # Unified launcher (auto-installs requirements, starts web server, opens browser)
 ├── synth.py        # Python prototype (used for initial testing with pygame)
 └── README.md       # This file
 ```
