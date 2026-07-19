@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber-Synth Air-1 | Gesture-Controlled Air Synthesizer</title>
+  <meta name="description" content="A real-time gesture-controlled air synthesizer using MediaPipe hand landmarker tracking and HTML5 Web Audio API.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo">
+      <h1>CYBER-SYNTH <span>AIR-1</span></h1>
+    </div>
+    <div class="system-status">
+      <div class="status-badge-container">
+        <div id="sustain-badge" class="badge">SUSTAIN HOLD</div>
+        <div id="mute-badge" class="badge">MUTED</div>
+      </div>
+      <div class="status-badge">
+        <div id="cam-dot" class="status-dot"></div>
+        <span>CAMERA</span>
+      </div>
+      <div class="status-badge">
+        <div id="audio-dot" class="status-dot"></div>
+        <span>AUDIO SYSTEM</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Interface Grid -->
+  <main>
+    
+    <!-- Left Column: Camera Tracking and Gestures Info -->
+    <section class="panel view-panel">
+      <div class="view-header">
+        <div class="view-title">INTERACTION RADAR</div>
+        <div class="readout-badge" id="freq-readout">STANDBY</div>
+      </div>
+      
+      <!-- Webcam and Canvas Tracker Overlay -->
+      <div class="camera-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+        
+        <!-- Setup / Loading Overlay -->
+        <div id="gesture-guidelines">
+          <div class="spinner"></div>
+          <h2>Initializing AI Vision...</h2>
+          <p>Please allow webcam permissions if prompted.</p>
+          
+          <div class="guidelines-card">
+            <h3>How to Play:</h3>
+            <ul>
+              <li><strong>Right Hand (Chord Select)</strong>: Raise 1-5 fingers to select chords. <strong>Open palm</strong> to toggle loop (L).</li>
+              <li><strong>Left Hand (G Save + Mod)</strong>: Close into a <strong>Fist</strong> to stamp/save chord (G) + slide for pitch bend and filter.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Real-Time Metrics readout -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Left Hand (G Save + Modulation)</div>
+          <div id="left-hand-status" class="stat-value">NO HAND</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Right Hand (Chord / L Loop)</div>
+          <div id="right-hand-status" class="stat-value">NO HAND</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Synth Controls & Dashboard -->
+    <section class="panel synth-panel">
+      
+      <!-- Audio Unlock Prompt (For browser autoplay policies) -->
+      <div id="audio-unlock" class="audio-unlock-prompt">
+        ⚡ CLICK HERE TO INITIALIZE SYNTH AUDIO ENGINE ⚡
+      </div>
+
+      <!-- Waveform Selectors -->
+      <div class="dashboard-section">
+        <div class="section-title">
+          <span>CHORD PRESETS</span>
+          <span class="readout-badge" id="waveform-display">STANDBY</span>
+        </div>
+        <div class="waveform-selector">
+          <button class="wave-btn" title="1 Finger: Fmaj7 Low">
+            <svg viewBox="0 0 24 24">
+              <path d="M2 12 C 4 6, 8 6, 12 12 C 16 18, 20 18, 22 12" />
+            </svg>
+            Fmaj7 Low
+          </button>
+          <button class="wave-btn" title="2 Fingers: Amaj7 Low">
+            <svg viewBox="0 0 24 24">
+              <path d="M2 18 L 10 6 L 10 18 L 18 6 L 18 18 L 22 12" />
+            </svg>
+            Amaj7 Low
+          </button>
+          <button class="wave-btn" title="3 Fingers: Fmaj7 Mid">
+            <svg viewBox="0 0 24 24">
+              <path d="M2 18 L 2 6 L 12 6 L 12 18 L 22 18 L 22 6" />
+            </svg>
+            Fmaj7 Mid
+          </button>
+          <button class="wave-btn" title="4 Fingers: Amaj7 Mid">
+            <svg viewBox="0 0 24 24">
+              <path d="M2 18 L 7 6 L 17 18 L 22 6" />
+            </svg>
+            Amaj7 Mid
+          </button>
+          <button class="wave-btn" title="5 Fingers: Fmaj7 High">
+            <svg viewBox="0 0 24 24">
+              <path d="M2 12 H 5 L 8 6 L 12 18 L 16 6 L 19 12 H 22" />
+            </svg>
+            Fmaj7 High
+          </button>
+        </div>
+      </div>
+
+      <!-- Frequency Parameters (Octave, Detune) -->
+      <div class="dashboard-section">
+        <div class="section-title">FREQUENCY PARAMETERS</div>
+        <div class="parameters-grid">
+          <div class="control-group">
+            <div class="control-label">
+              <span>Octave</span>
+              <span class="control-val" id="val-octave">4</span>
+            </div>
+            <input type="range" id="knob-octave" min="2" max="6" value="4" step="1">
+          </div>
+          <div class="control-group">
+            <div class="control-label">
+              <span>Detune</span>
+              <span class="control-val" id="val-detune">0 cents</span>
+            </div>
+            <input type="range" id="knob-detune" min="-100" max="100" value="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Lowpass Filter Section -->
+      <div class="dashboard-section">
+        <div class="section-title">BIQUAD LOWPASS FILTER</div>
+        <div class="parameters-grid">
+          <div class="control-group">
+            <div class="control-label">
+              <span>Cutoff Frequency</span>
+              <span class="control-val" id="val-cutoff">20000 Hz</span>
+            </div>
+            <input type="range" id="slider-cutoff" min="60" max="20000" value="20000" step="1">
+          </div>
+          <div class="control-group">
+            <div class="control-label">
+              <span>Resonance (Q)</span>
+              <span class="control-val" id="val-q">1.0</span>
+            </div>
+            <input type="range" id="slider-q" min="0.1" max="20" value="1.0" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <!-- ADSR Envelope -->
+      <div class="dashboard-section">
+        <div class="section-title">ADSR AMPLITUDE ENVELOPE</div>
+        <div class="envelope-container">
+          <div class="envelope-sliders">
+            <div class="control-group pink">
+              <div class="control-label">
+                <span>Attack (A)</span>
+                <span class="control-val" id="val-attack">0.10s</span>
+              </div>
+              <input type="range" id="fader-attack" min="0.01" max="2.0" value="0.10" step="0.01">
+            </div>
+            <div class="control-group pink">
+              <div class="control-label">
+                <span>Decay (D)</span>
+                <span class="control-val" id="val-decay">0.30s</span>
+              </div>
+              <input type="range" id="fader-decay" min="0.01" max="2.0" value="0.30" step="0.01">
+            </div>
+            <div class="control-group pink">
+              <div class="control-label">
+                <span>Sustain (S)</span>
+                <span class="control-val" id="val-sustain">0.70</span>
+              </div>
+              <input type="range" id="fader-sustain" min="0.0" max="1.0" value="0.70" step="0.01">
+            </div>
+            <div class="control-group pink">
+              <div class="control-label">
+                <span>Release (R)</span>
+                <span class="control-val" id="val-release">0.50s</span>
+              </div>
+              <input type="range" id="fader-release" min="0.01" max="4.0" value="0.50" step="0.01">
+            </div>
+          </div>
+          
+          <!-- Envelope Graph Shape Display -->
+          <div class="envelope-graph">
+            <canvas id="adsr-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delay Effect Section -->
+      <div class="dashboard-section">
+        <div class="section-title">ECHO / DELAY SPACE EFFECT</div>
+        <div class="parameters-grid">
+          <div class="control-group">
+            <div class="control-label">
+              <span>Feedback Loop</span>
+              <span class="control-val" id="val-delay-feedback">30%</span>
+            </div>
+            <input type="range" id="slider-delay-feedback" min="0" max="95" value="30" step="1">
+          </div>
+          <div class="control-group">
+            <div class="control-label">
+              <span>Echo Time Delay</span>
+              <span class="control-val" id="val-delay-time">0.30s</span>
+            </div>
+            <input type="range" id="slider-delay-time" min="0.05" max="1.0" value="0.30" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <!-- Waveform Oscilloscope -->
+      <div class="dashboard-section">
+        <div class="section-title">OSCILLOSCOPE WAVE DISPLAY</div>
+        <div class="visualizer-container">
+          <canvas id="visualizer"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Instructions Footer -->
+  <footer class="instructions-panel">
+    <div class="instructions-steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <span>Right hand: 1-5 fingers = select chord</span>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <span>Left fist = G (stamp chord) + slide for mod</span>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <span>Right open palm = L (loop saved chords)</span>
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <span>Left open palm = L (loop saved chords)</span>
+      </div>
+    </div>
+    <div>v1.0.0 Web Standalone</div>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
