@@ -562,8 +562,10 @@ function startWebcam() {
 async function predictLoop() {
   if (!webcamRunning) return;
   
-  canvasElement.width = videoElement.clientWidth;
-  canvasElement.height = videoElement.clientHeight;
+  if (canvasElement.width !== videoElement.clientWidth || canvasElement.height !== videoElement.clientHeight) {
+    canvasElement.width = videoElement.clientWidth;
+    canvasElement.height = videoElement.clientHeight;
+  }
   
   if (videoElement.currentTime !== lastVideoTime) {
     lastVideoTime = videoElement.currentTime;
